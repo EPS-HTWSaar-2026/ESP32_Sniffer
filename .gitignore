@@ -1,0 +1,32 @@
+# ESP-IDF / Build specific
+/build/
+sdkconfig.old
+# sdkconfig
+
+# CMake
+/cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+
+# JetBrains / CLion
+.idea/
+
+# Eclipse
+.project
+.cproject
+.settings/
+
+# Clang / LSPs
+.clangd/
+.clangd
+compile_commands.json
+
+# Environment and Logs
+*.env
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
