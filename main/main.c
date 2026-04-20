@@ -1,7 +1,3 @@
-//
-// AeroScout Wi-Fi sniffer – ESP32-C6
-//
-
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 

@@ -3,5 +3,6 @@
 
 #include "info.h"
 
-void init_wifi(info *ble_info);
-#endif // WIFI_H
+void init_wifi(info *wifi_info);
+
+#endif // WIFI_Hendif // WIFI_H

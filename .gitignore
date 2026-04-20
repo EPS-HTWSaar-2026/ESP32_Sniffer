@@ -22,10 +22,11 @@ cmake_install.cmake
 .clangd/
 .clangd
 compile_commands.json
+.clang-format
 
 # Environment and Logs
-*.env
 *.log
+main/env.h
 
 # OS generated files
 .DS_Store
