@@ -2,7 +2,10 @@
 #define WIFI_H
 
 #include "info.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 
-void init_wifi(info *wifi_info);
+extern QueueHandle_t packetQueue;
+void init_wifi(void);
 
-#endif // WIFI_Hendif // WIFI_H
+#endif // WIFI_H endif

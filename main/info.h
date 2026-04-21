@@ -3,28 +3,22 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "esp_wifi_types_native.h"
 
-#define INFO_ARRAY_LENGTH 255
 #define MAC_LENGTH 32
 #define NAME_LENGTH 64
 #define RAW_PACKET_MAX_LEN 256
-
-typedef enum { BLE, WIFI } source;
+#define MAX_QUEUED_PAYLOAD 256
 
 typedef struct {
-  uint8_t mac[MAC_LENGTH];
-  size_t mac_len;
-  char name[NAME_LENGTH];
-  size_t name_len;
-  int rssi;
-  source source;
-  uint8_t raw_packet[RAW_PACKET_MAX_LEN];
-  size_t packet_len;
-} info;
+    uint8_t transmitterAddr[MAC_LENGTH];
+    uint8_t sourceAddr[NAME_LENGTH];
+    int rssi;
+    uint8_t raw_packet[RAW_PACKET_MAX_LEN];
+    size_t packet_len;
+    wifi_pkt_rx_ctrl_t rx_ctrl;
+} aeroScoutPacket;
 
-void update_info(info *info_to_add, uint8_t *mac, size_t mac_len, char *name,
-                 size_t name_len, int rssi, source source, uint8_t *raw_packet,
-                 size_t packet_len);
-void send_info(info *info_to_send);
+void print_aeroscout_info(const aeroScoutPacket *packet);
 
 #endif // INFO_H

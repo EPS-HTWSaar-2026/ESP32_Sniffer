@@ -1,8 +1,8 @@
 idf_component_register(
-    SRCS "info.c"
-         "wifi.c"
-         "http_post.c"
+    SRCS "wifi.c"
          "main.c"
+         "info.c"
+        "uart.c"
 
     INCLUDE_DIRS "."
 )
