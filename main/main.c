@@ -1,10 +1,10 @@
+#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
-#include "esp_log.h"
-#include "nvs_flash.h"
 #include "info.h"
-#include "wifi.h"
+#include "nvs_flash.h"
 #include "uart.h"
+#include "wifi.h"
 
 #define POST_QUEUE_DEPTH 8
 
@@ -16,7 +16,7 @@ void app_main(void) {
       ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
     ESP_ERROR_CHECK(nvs_flash_erase());
     ret = nvs_flash_init();
-      }
+  }
   ESP_ERROR_CHECK(ret);
 
   packetQueue = xQueueCreate(POST_QUEUE_DEPTH, sizeof(aeroScoutPacket));

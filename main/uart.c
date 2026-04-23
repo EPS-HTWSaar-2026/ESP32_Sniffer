@@ -14,10 +14,9 @@ extern QueueHandle_t packetQueue;
 
 static void uart_tx_task(void *pvParameters) {
   aeroScoutPacket packet;
-
   while (1) {
     if (xQueueReceive(packetQueue, &packet, portMAX_DELAY) == pdTRUE) {
-
+      print_aeroscout_info(&packet);
       if (packet.packet_len > 0) {
         uart_write_bytes(UART_PORT, (const void *)packet.raw_packet,
                          packet.packet_len);
