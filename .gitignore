@@ -1,8 +1,11 @@
 # ESP-IDF / Build specific
 /build/
 sdkconfig.old
-# sdkconfig
-
+main/build/
+main/idf_component.yml
+sdkconfig
+dependencies.lock
+/managed_components/
 # CMake
 /cmake-build-*/
 CMakeCache.txt

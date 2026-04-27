@@ -1,9 +1,11 @@
 #include "uart.h"
+#include "cJSON.h"
 #include "driver/uart.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/task.h"
+#include <string.h>
 
 #include "info.h"
 
@@ -17,10 +19,28 @@ static void uart_tx_task(void *pvParameters) {
   while (1) {
     if (xQueueReceive(packetQueue, &packet, portMAX_DELAY) == pdTRUE) {
       print_aeroscout_info(&packet);
-      if (packet.packet_len > 0) {
-        uart_write_bytes(UART_PORT, (const void *)packet.raw_packet,
-                         packet.packet_len);
+
+      cJSON *root = cJSON_CreateObject();
+
+      char mac_str[MAC_LENGTH * 2 + 1] = {0};
+      for (int i = 0; i < MAC_LENGTH; i++) {
+        sprintf(&mac_str[i * 2], "%02X", packet.transmitterAddr[i]);
       }
+      cJSON_AddStringToObject(root, "tAddr", mac_str);
+
+      cJSON_AddNumberToObject(root, "rssi", packet.rssi);
+
+      char raw_mac[MAC_LENGTH * 2 + 1] = {0};
+      for (int i = 0; i < 6; i++) {
+        sprintf(&raw_mac[i], "%02X", esp_mac[i]);
+      }
+      cJSON_AddStringToObject(root, "esp_mac", raw_mac);
+
+      char *json_string = cJSON_PrintUnformatted(root);
+
+      uart_write_bytes(UART_PORT, json_string, strlen(json_string));
+      cJSON_free(json_string);
+      cJSON_Delete(root);
     }
   }
 }
@@ -39,12 +59,8 @@ void init_uart(void) {
       .source_clk = UART_SCLK_DEFAULT,
   };
 
-  // Configure UART parameters
   ESP_ERROR_CHECK(uart_param_config(UART_PORT, &uart_config));
-  // Set UART pins (TX: IO4, RX: IO5, RTS: IO18, CTS: IO19)
-  ESP_ERROR_CHECK(uart_set_pin(UART_PORT, 4, 5, 18, 19, UART_PIN_NO_CHANGE,
-                               UART_PIN_NO_CHANGE));
-  // Install UART driver
+  ESP_ERROR_CHECK(uart_set_pin(UART_PORT, 4, 5, 18, 19));
   ESP_ERROR_CHECK(uart_driver_install(UART_PORT, uart_buffer_size,
                                       uart_buffer_size, 10, &uart_driver_queue,
                                       0));
