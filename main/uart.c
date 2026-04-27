@@ -22,15 +22,15 @@ static void uart_tx_task(void *pvParameters) {
 
       cJSON *root = cJSON_CreateObject();
 
-      char mac_str[MAC_LENGTH * 2 + 1] = {0};
-      for (int i = 0; i < MAC_LENGTH; i++) {
+      char mac_str[12 + 1] = {0};
+      for (int i = 0; i < 6; i++) {
         sprintf(&mac_str[i * 2], "%02X", packet.transmitterAddr[i]);
       }
       cJSON_AddStringToObject(root, "tAddr", mac_str);
 
       cJSON_AddNumberToObject(root, "rssi", packet.rssi);
 
-      char raw_mac[MAC_LENGTH * 2 + 1] = {0};
+      char raw_mac[6 + 1] = {0};
       for (int i = 0; i < 6; i++) {
         sprintf(&raw_mac[i], "%02X", esp_mac[i]);
       }
@@ -39,6 +39,7 @@ static void uart_tx_task(void *pvParameters) {
       char *json_string = cJSON_PrintUnformatted(root);
 
       uart_write_bytes(UART_PORT, json_string, strlen(json_string));
+      uart_write_bytes(UART_PORT, "\n", 1);
       cJSON_free(json_string);
       cJSON_Delete(root);
     }
