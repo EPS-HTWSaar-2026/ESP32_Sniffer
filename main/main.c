@@ -11,6 +11,7 @@
 QueueHandle_t packetQueue = NULL;
 
 void app_main(void) {
+  // Initialize NVS
   esp_err_t ret = nvs_flash_init();
   if (ret == ESP_ERR_NVS_NO_FREE_PAGES ||
       ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -20,6 +21,8 @@ void app_main(void) {
   ESP_ERROR_CHECK(ret);
 
   packetQueue = xQueueCreate(POST_QUEUE_DEPTH, sizeof(aeroScoutPacket));
+  configASSERT(packetQueue != NULL);
+
   init_uart();
   init_wifi();
 }
