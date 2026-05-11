@@ -6,15 +6,6 @@ void print_aeroscout_info(const aeroScoutPacket *packet) {
     return;
 
   printf("\r\n=== AeroScout Tag Detected ===\r\n");
-  printf("Tag MAC (Source): %02x:%02x:%02x:%02x:%02x:%02x\r\n",
-         packet->sourceAddr[0], packet->sourceAddr[1], packet->sourceAddr[2],
-         packet->sourceAddr[3], packet->sourceAddr[4], packet->sourceAddr[5]);
-
-  printf("Transmitter MAC:  %02x:%02x:%02x:%02x:%02x:%02x\r\n",
-         packet->transmitterAddr[0], packet->transmitterAddr[1],
-         packet->transmitterAddr[2], packet->transmitterAddr[3],
-         packet->transmitterAddr[4], packet->transmitterAddr[5]);
-
   printf("RSSI: %3d dBm\r\n", packet->rssi);
   printf("Packet Length: %zu bytes\r\n", packet->packet_len);
 
@@ -32,14 +23,4 @@ void print_aeroscout_info(const aeroScoutPacket *packet) {
     printf("\r\n");
   }
   printf("==============================\r\n");
-
-  printf("{\"transmitterAddr\": \"%02x%02x%02x%02x%02x%02x\", "
-         "\"sourceAddr\": \"%02x%02x%02x%02x%02x%02x\", "
-         "\"rssi\": %d, \"packet_len\": %zu, \"channel\": %d}\r\n",
-         packet->transmitterAddr[0], packet->transmitterAddr[1],
-         packet->transmitterAddr[2], packet->transmitterAddr[3],
-         packet->transmitterAddr[4], packet->transmitterAddr[5],
-         packet->sourceAddr[0], packet->sourceAddr[1], packet->sourceAddr[2],
-         packet->sourceAddr[3], packet->sourceAddr[4], packet->sourceAddr[5],
-         packet->rssi, packet->packet_len, packet->rx_ctrl.channel);
 }

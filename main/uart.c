@@ -9,9 +9,14 @@
 #include "wifi.h"
 #include <string.h>
 
-#define UART_PORT UART_NUM_1
+#define UART_PORT             UART_NUM_1
+#define UART_TX_PIN           (4)
+#define UART_RX_PIN           (5)
+#define UART_TASK_STACK_SIZE  (4096)
+#define UART_TASK_PRIORITY    (5)
+#define UART_BUFFER_SIZE     (1024)
 
-
+static const char *TAG = "UART";
 
 extern QueueHandle_t packetQueue;
 
@@ -20,25 +25,61 @@ static void mac_to_str(const uint8_t *mac, char *out) {
     sprintf(&out[i * 2], "%02X", mac[i]);
 }
 
+static char* create_raw_hex_string(const uint8_t *raw_data, size_t len) {
+  if (raw_data == NULL || len == 0) {
+    return NULL;
+  }
+
+  char *raw_hex = malloc(len * 2 + 1);
+  if (raw_hex != NULL) {
+    for (size_t i = 0; i < len; i++) {
+      sprintf(&raw_hex[i * 2], "%02X", raw_data[i]);
+    }
+    raw_hex[len * 2] = '\0';
+  }
+  return raw_hex;
+}
+
+static cJSON* create_rx_ctrl_json(const wifi_pkt_rx_ctrl_t *rx_ctrl) {
+  if (rx_ctrl == NULL) {
+    return NULL;
+  }
+
+  cJSON *rx_ctrl_json = cJSON_CreateObject();
+  if (rx_ctrl_json != NULL) {
+    cJSON_AddNumberToObject(rx_ctrl_json, "rssi", rx_ctrl->rssi);
+    cJSON_AddNumberToObject(rx_ctrl_json, "rate", rx_ctrl->rate);
+    cJSON_AddNumberToObject(rx_ctrl_json, "channel", rx_ctrl->channel);
+    cJSON_AddNumberToObject(rx_ctrl_json, "sig_len", rx_ctrl->sig_len);
+  }
+  return rx_ctrl_json;
+}
+
 static void uart_tx_task(void *pvParameters) {
   aeroScoutPacket packet;
 
   while (1) {
     if (xQueueReceive(packetQueue, &packet, portMAX_DELAY) != pdTRUE)
       continue;
-
     print_aeroscout_info(&packet);
 
-    char t_addr[13] = {0};
     char e_addr[13] = {0};
-    mac_to_str(packet.transmitterAddr, t_addr);
     mac_to_str(esp_mac, e_addr);
 
+    // Json creation
     cJSON *root = cJSON_CreateObject();
-    cJSON_AddStringToObject(root, "tAddr", t_addr);
-    cJSON_AddNumberToObject(root, "rssi", packet.rssi);
+    char *raw_hex = create_raw_hex_string(packet.raw_packet, packet.packet_len);
+    if (raw_hex != NULL) {
+      cJSON_AddStringToObject(root, "raw_packets", raw_hex);
+      free(raw_hex);
+    }
+    cJSON *rx_ctrl_json = create_rx_ctrl_json(&packet.rx_ctrl);
+    if (rx_ctrl_json != NULL) {
+      cJSON_AddItemToObject(root, "rx_ctrl", rx_ctrl_json);
+    }
     cJSON_AddStringToObject(root, "espMac", e_addr);
 
+    // Json sending
     char *json = cJSON_PrintUnformatted(root);
     if (json != NULL) {
       uart_write_bytes(UART_PORT, json, strlen(json));
@@ -50,7 +91,6 @@ static void uart_tx_task(void *pvParameters) {
 }
 
 void init_uart(void) {
-  const int uart_buffer_size = 1024 * 2;
   QueueHandle_t uart_driver_queue;
 
   const uart_config_t uart_config = {
@@ -64,11 +104,12 @@ void init_uart(void) {
 
   ESP_ERROR_CHECK(uart_param_config(UART_PORT, &uart_config));
   ESP_ERROR_CHECK(
-      uart_set_pin(UART_PORT, 4, 5, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
-  ESP_ERROR_CHECK(uart_driver_install(UART_PORT, uart_buffer_size,
-                                      uart_buffer_size, 10, &uart_driver_queue,
+      uart_set_pin(UART_PORT, UART_TX_PIN, UART_RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+
+  ESP_ERROR_CHECK(uart_driver_install(UART_PORT, UART_BUFFER_SIZE,
+                                      UART_BUFFER_SIZE, 10, &uart_driver_queue,
                                       0));
 
-  xTaskCreate(uart_tx_task, "uart_tx_task", 4096, NULL, 5, NULL);
+  xTaskCreate(uart_tx_task, "uart_tx_task", UART_TASK_STACK_SIZE, NULL, UART_TASK_PRIORITY, NULL);
   ESP_LOGI(TAG, "UART initialised, TX task started");
 }

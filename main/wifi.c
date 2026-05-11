@@ -5,6 +5,12 @@
 #include "esp_wifi.h"
 #include "info.h"
 #include <string.h>
+
+#define WIFI_CHANNEL (6)
+
+static const char *TAG = "AeroScout";
+static const uint8_t AEROSCOUT_OUI[3] = {0x01, 0x0C, 0xCC};
+
 uint8_t esp_mac[6] = {0};
 
 void sniffer(void *buf, wifi_promiscuous_pkt_type_t type) {
@@ -26,16 +32,15 @@ void sniffer(void *buf, wifi_promiscuous_pkt_type_t type) {
            pkt->rx_ctrl.rssi);
 
   aeroScoutPacket packet;
-  memcpy(packet.sourceAddr, destinationAddr, 6);
-  memcpy(packet.transmitterAddr, transmitterAddr, 6);
   packet.rssi = pkt->rx_ctrl.rssi;
+  packet.rx_ctrl = pkt->rx_ctrl;
 
   size_t safe_len = pkt->rx_ctrl.sig_len < MAX_QUEUED_PAYLOAD
                         ? pkt->rx_ctrl.sig_len
                         : MAX_QUEUED_PAYLOAD;
-  memcpy(packet.raw_packet, payload, safe_len);
+
   packet.packet_len = safe_len;
-  packet.rx_ctrl = pkt->rx_ctrl;
+  memcpy(packet.raw_packet, payload, safe_len);
 
   if (packetQueue != NULL) {
     if (xQueueSend(packetQueue, &packet, 0) != pdTRUE)
@@ -59,12 +64,12 @@ void init_wifi(void) {
   };
   ESP_ERROR_CHECK(esp_wifi_set_promiscuous_filter(&filter));
   ESP_ERROR_CHECK(esp_wifi_set_promiscuous_rx_cb(&sniffer));
-  ESP_ERROR_CHECK(esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE));
+  ESP_ERROR_CHECK(esp_wifi_set_channel(WIFI_CHANNEL, WIFI_SECOND_CHAN_NONE));
   ESP_ERROR_CHECK(esp_wifi_set_promiscuous(true));
 
   ESP_LOGI(TAG,
            "Sniffer running on channel %d, MAC: "
            "%02x:%02x:%02x:%02x:%02x:%02x",
-           channel, esp_mac[0], esp_mac[1], esp_mac[2], esp_mac[3], esp_mac[4],
+           WIFI_CHANNEL, esp_mac[0], esp_mac[1], esp_mac[2], esp_mac[3], esp_mac[4],
            esp_mac[5]);
 }
