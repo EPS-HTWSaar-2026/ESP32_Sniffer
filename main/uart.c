@@ -8,6 +8,7 @@
 #include "info.h"
 #include "wifi.h"
 #include <string.h>
+#include <stdio.h>
 
 #define UART_PORT             UART_NUM_1
 #define UART_TX_PIN           (4)
@@ -22,7 +23,7 @@ extern QueueHandle_t packetQueue;
 
 static void mac_to_str(const uint8_t *mac, char *out) {
   for (int i = 0; i < 6; i++)
-    sprintf(&out[i * 2], "%02X", mac[i]);
+    snprintf(&out[i * 2], 3, "%02X", mac[i]);
 }
 
 static char* create_raw_hex_string(const uint8_t *raw_data, size_t len) {

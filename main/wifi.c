@@ -19,7 +19,11 @@ void sniffer(void *buf, wifi_promiscuous_pkt_type_t type) {
 
   wifi_promiscuous_pkt_t *pkt = (wifi_promiscuous_pkt_t *)buf;
 
+  if (pkt->rx_ctrl.sig_len < 16) {
+    return;
+  }
   uint8_t *payload = pkt->payload;
+
   const uint8_t *destinationAddr = payload + 4;
   const uint8_t *transmitterAddr = payload + 10;
 
