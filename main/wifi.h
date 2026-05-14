@@ -8,5 +8,6 @@ extern QueueHandle_t packetQueue;
 extern uint8_t esp_mac[6];
 
 void init_wifi(void);
+void change_wifi_channel(int channel);
 
 #endif // WIFI_H

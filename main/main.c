@@ -6,7 +6,7 @@
 #include "uart.h"
 #include "wifi.h"
 
-#define POST_QUEUE_DEPTH 8
+#define POST_QUEUE_DEPTH 20
 
 QueueHandle_t packetQueue = NULL;
 
@@ -20,7 +20,7 @@ void app_main(void) {
   }
   ESP_ERROR_CHECK(ret);
 
-  packetQueue = xQueueCreate(POST_QUEUE_DEPTH, sizeof(aeroScoutPacket));
+  packetQueue = xQueueCreate(POST_QUEUE_DEPTH, sizeof(sniffer_packet_t *));
   configASSERT(packetQueue != NULL);
 
   init_uart();

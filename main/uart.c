@@ -7,15 +7,16 @@
 #include "freertos/task.h"
 #include "info.h"
 #include "wifi.h"
-#include <string.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
-#define UART_PORT             UART_NUM_1
-#define UART_TX_PIN           (4)
-#define UART_RX_PIN           (5)
-#define UART_TASK_STACK_SIZE  (4096)
-#define UART_TASK_PRIORITY    (5)
-#define UART_BUFFER_SIZE     (1024)
+#define UART_PORT UART_NUM_1
+#define UART_TX_PIN (4)
+#define UART_RX_PIN (5)
+#define UART_TASK_STACK_SIZE (4096)
+#define UART_TASK_PRIORITY (5)
+#define UART_BUFFER_SIZE (1024)
 
 static const char *TAG = "UART";
 
@@ -26,7 +27,7 @@ static void mac_to_str(const uint8_t *mac, char *out) {
     snprintf(&out[i * 2], 3, "%02X", mac[i]);
 }
 
-static char* create_raw_hex_string(const uint8_t *raw_data, size_t len) {
+static char *create_raw_hex_string(const uint8_t *raw_data, size_t len) {
   if (raw_data == NULL || len == 0) {
     return NULL;
   }
@@ -41,7 +42,7 @@ static char* create_raw_hex_string(const uint8_t *raw_data, size_t len) {
   return raw_hex;
 }
 
-static cJSON* create_rx_ctrl_json(const wifi_pkt_rx_ctrl_t *rx_ctrl) {
+static cJSON *create_rx_ctrl_json(const wifi_pkt_rx_ctrl_t *rx_ctrl) {
   if (rx_ctrl == NULL) {
     return NULL;
   }
@@ -57,7 +58,7 @@ static cJSON* create_rx_ctrl_json(const wifi_pkt_rx_ctrl_t *rx_ctrl) {
 }
 
 static void uart_tx_task(void *pvParameters) {
-  aeroScoutPacket packet;
+  sniffer_packet_t packet;
 
   while (1) {
     if (xQueueReceive(packetQueue, &packet, portMAX_DELAY) != pdTRUE)
@@ -69,7 +70,8 @@ static void uart_tx_task(void *pvParameters) {
 
     // Json creation
     cJSON *root = cJSON_CreateObject();
-    char *raw_hex = create_raw_hex_string(packet.raw_packet, packet.packet_len);
+    char *raw_hex =
+        create_raw_hex_string(packet.payload, packet.rx_ctrl.sig_len);
     if (raw_hex != NULL) {
       cJSON_AddStringToObject(root, "raw_packets", raw_hex);
       free(raw_hex);
@@ -91,6 +93,18 @@ static void uart_tx_task(void *pvParameters) {
   }
 }
 
+static void uart_rx_task(void *pvParameters) {
+  uint8_t channel = 0;
+  while (1) {
+    int len = uart_read_bytes(UART_PORT, (uint8_t *)&channel, sizeof(channel),
+                              portMAX_DELAY);
+    if (len > 0) {
+      ESP_LOGI(TAG, "Received channel change command: %d", channel);
+      change_wifi_channel(channel);
+    }
+  }
+}
+
 void init_uart(void) {
   QueueHandle_t uart_driver_queue;
 
@@ -104,13 +118,14 @@ void init_uart(void) {
   };
 
   ESP_ERROR_CHECK(uart_param_config(UART_PORT, &uart_config));
-  ESP_ERROR_CHECK(
-      uart_set_pin(UART_PORT, UART_TX_PIN, UART_RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+  ESP_ERROR_CHECK(uart_set_pin(UART_PORT, UART_TX_PIN, UART_RX_PIN,
+                               UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 
   ESP_ERROR_CHECK(uart_driver_install(UART_PORT, UART_BUFFER_SIZE,
                                       UART_BUFFER_SIZE, 10, &uart_driver_queue,
                                       0));
 
-  xTaskCreate(uart_tx_task, "uart_tx_task", UART_TASK_STACK_SIZE, NULL, UART_TASK_PRIORITY, NULL);
+  xTaskCreate(uart_tx_task, "uart_tx_task", UART_TASK_STACK_SIZE, NULL,
+              UART_TASK_PRIORITY, NULL);
   ESP_LOGI(TAG, "UART initialised, TX task started");
 }
