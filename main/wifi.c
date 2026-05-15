@@ -13,12 +13,18 @@ static const uint8_t AEROSCOUT_OUI[3] = {0x01, 0x0C, 0xCC};
 uint8_t esp_mac[6] = {0};
 
 void sniffer(void *buf, wifi_promiscuous_pkt_type_t type) {
+  if (buf == NULL)
+    return;
   if (type != WIFI_PKT_DATA && type != WIFI_PKT_MGMT)
     return;
 
-  wifi_promiscuous_pkt_t *pkt = (wifi_promiscuous_pkt_t *)buf;
+  const wifi_promiscuous_pkt_t *pkt = (const wifi_promiscuous_pkt_t *)buf;
   if (pkt->rx_ctrl.sig_len < 16)
     return;
+
+  if (pkt->rx_ctrl.sig_len > MAX_QUEUED_PAYLOAD)
+    return;
+
   if (memcmp(pkt->payload + 4, AEROSCOUT_OUI, 3) != 0)
     return;
 
@@ -27,13 +33,16 @@ void sniffer(void *buf, wifi_promiscuous_pkt_type_t type) {
     return;
 
   q_pkt->rx_ctrl = pkt->rx_ctrl;
-  q_pkt->len = pkt->rx_ctrl.sig_len;
+  q_pkt->len = (uint16_t)pkt->rx_ctrl.sig_len;
   memcpy(q_pkt->payload, pkt->payload, q_pkt->len);
 
   if (packetQueue != NULL) {
+    // Queue holds the pointer itself, so pass &q_pkt
     if (xQueueSend(packetQueue, &q_pkt, 0) != pdTRUE) {
       free(q_pkt);
     }
+  } else {
+    free(q_pkt);
   }
 }
 

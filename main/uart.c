@@ -58,38 +58,51 @@ static cJSON *create_rx_ctrl_json(const wifi_pkt_rx_ctrl_t *rx_ctrl) {
 }
 
 static void uart_tx_task(void *pvParameters) {
-  sniffer_packet_t packet;
+  sniffer_packet_t *packet = NULL;
 
   while (1) {
     if (xQueueReceive(packetQueue, &packet, portMAX_DELAY) != pdTRUE)
       continue;
-    print_aeroscout_info(&packet);
+    if (packet == NULL)
+      continue;
+
+    print_aeroscout_info(packet);
 
     char e_addr[13] = {0};
     mac_to_str(esp_mac, e_addr);
 
-    // Json creation
     cJSON *root = cJSON_CreateObject();
+    if (root == NULL) {
+      free(packet);
+      packet = NULL;
+      continue;
+    }
+
     char *raw_hex =
-        create_raw_hex_string(packet.payload, packet.rx_ctrl.sig_len);
+        create_raw_hex_string(packet->payload, packet->rx_ctrl.sig_len);
     if (raw_hex != NULL) {
       cJSON_AddStringToObject(root, "raw_packets", raw_hex);
       free(raw_hex);
     }
-    cJSON *rx_ctrl_json = create_rx_ctrl_json(&packet.rx_ctrl);
+
+    cJSON *rx_ctrl_json = create_rx_ctrl_json(&packet->rx_ctrl);
     if (rx_ctrl_json != NULL) {
       cJSON_AddItemToObject(root, "rx_ctrl", rx_ctrl_json);
     }
     cJSON_AddStringToObject(root, "espMac", e_addr);
 
-    // Json sending
     char *json = cJSON_PrintUnformatted(root);
+
+    cJSON_Delete(root);
+
     if (json != NULL) {
       uart_write_bytes(UART_PORT, json, strlen(json));
       uart_write_bytes(UART_PORT, "\n", 1);
       cJSON_free(json);
     }
-    cJSON_Delete(root);
+
+    free(packet);
+    packet = NULL;
   }
 }
 
@@ -128,4 +141,8 @@ void init_uart(void) {
   xTaskCreate(uart_tx_task, "uart_tx_task", UART_TASK_STACK_SIZE, NULL,
               UART_TASK_PRIORITY, NULL);
   ESP_LOGI(TAG, "UART initialised, TX task started");
+
+  xTaskCreate(uart_rx_task, "uart_rx_task", UART_TASK_STACK_SIZE, NULL,
+              UART_TASK_PRIORITY, NULL);
+  ESP_LOGI(TAG, "UART RX task started");
 }
