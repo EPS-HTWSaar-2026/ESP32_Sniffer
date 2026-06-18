@@ -77,8 +77,7 @@ main/
 ├── main.c      — Entry point: NVS init, queue creation, starts UART + Wi-Fi
 ├── wifi.c/.h   — Promiscuous mode setup, sniffer() callback, OUI filtering
 ├── uart.c/.h   — UART init, JSON serialisation (TX task), channel-change (RX task)
-├── info.c/.h   — sniffer_packet_t struct definition, hex-dump printer
-└── env.h       — Local environment config (git-ignored, copy from env-example.h)
+└── info.c/.h   — sniffer_packet_t struct definition, hex-dump printer
 ```
 
 ## Notes
